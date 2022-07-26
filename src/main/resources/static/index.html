@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>타임라인</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        function writePost() {
+            let password = $('#password').val();
+            let contents = $('#contents').val();
+            if (isValidContents(contents) == false) {
+                return;
+            }
+            let username = genRandomName(10);
+            let data = {'username':username, 'contents':contents, 'password':password}
+            $.ajax({
+                type: "POST",
+                url: "/api/posts",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    alert('게시물이 성공적으로 저장되었습니다.');
+                    window.location.reload();
+                }
+            });
+        }
+
+        function isValidContents(contents) {
+            if (contents == '') {
+                alert('내용을 입력해주세요');
+                return false;
+            }
+            if (contents.trim().length > 140) {
+                alert('공백 포함 140자 이하로 입력해주세요');
+                return false;
+            }
+            return true;
+        }
+
+        function genRandomName(length) {
+            let result = '';
+            let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+                let number = Math.random() * charactersLength;
+                let index = Math.floor(number);
+                result += characters.charAt(index);
+            }
+            return result;
+        }
+
+        function getPosts() {
+            $('#postList').empty();
+            $.ajax({
+                type: 'GET',
+                url: '/api/posts',
+                success: function (response) {
+                    for (let i = 0; i < response.length; i++) {
+                        let post = response[i];
+                        let id = post.id;
+                        let username = post.username;
+                        let contents = post.contents;
+                        let modifiedAt = post.modifiedAt;
+                        addHtml(id, username, contents, modifiedAt);
+                    }
+                }
+            });
+        }
+
+        function addHtml(id, username, contents, modifiedAt) {
+            let tempHtml = `<li style="margin-top: 20px;">
+                                <div id="${id}-username">${username}</div>
+                                <div id="${id}-modifiedAt">${modifiedAt}</div>
+                                <div id="${id}-editArea">
+                                    <textarea id="${id}-contents" cols="30" rows="10">${contents}</textarea>
+                                </div>
+                                <input type="password" id="${id}-password" placeholder="비밀번호">
+                                <button onclick="editPost('${id}')">수정</button>
+                                <button onclick="deletePost('${id}')">삭제</button>
+                            </li>`;
+            $('#postList').append(tempHtml);
+        }
+
+        $(document).ready(function () {
+            getPosts();
+        });
+
+        function editPost(id) {
+            let password = $(`#${id}-password`).val();
+            if (password == '') {
+                alert('비밀번호를 입력해주세요!');
+            } else {
+                let username = $(`#${id}-username`).text().trim();
+                let contents = $(`#${id}-contents`).val().trim();
+                if (isValidContents(contents) == false) {
+                    return;
+                }
+                let data = {'username': username, 'contents': contents, 'password':password};
+                $.ajax({
+                    type: "PUT",
+                    url: `/api/posts/${id}`,
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function (response) {
+                        alert(response);
+                        window.location.reload();
+                    }
+                });
+            }
+        }
+
+        function deletePost(id) {
+            let password = $(`#${id}-password`).val();
+            console.log(password);
+            if (password == '') {
+                alert('비밀번호를 입력해주세요!');
+            } else {
+                alert('삭제하시겠습니까?')
+                let data = {'password': password};
+                $.ajax({
+                    type: "DELETE",
+                    url: `/api/posts/${id}`,
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function (response) {
+                        alert(response);
+                        window.location.reload();
+                    }
+                });
+            }
+        }
+    </script>
+</head>
+<body>
+    <div>
+        <h1>TimeLine</h1>
+    </div>
+    <div>
+        <input type="password" id="password" placeholder="비밀번호 입력">
+        <button onclick="writePost()">등록</button>
+    </div>
+    <div style="margin-top: 10px;">
+        <textarea id="contents" cols="30" rows="10" placeholder="글내용"></textarea>
+    </div>
+    <div style="margin-top: 30px;">
+        <ul id="postList">
+
+        </ul>
+    </div>
+</body>
+</html>
